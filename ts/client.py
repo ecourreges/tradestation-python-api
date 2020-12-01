@@ -4,6 +4,8 @@ import json
 
 import requests
 import urllib.parse
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 from typing import List
 from typing import Dict
@@ -14,7 +16,6 @@ from datetime import date
 from datetime import datetime
 
 from dateutil.parser import parse
-
 
 class TradeStationClient():
 
@@ -84,6 +85,20 @@ class TradeStationClient():
 
         # define a new attribute called 'authstate' and initalize it to '' (Blank). This will be used by our login function.
         self.authstate = False
+
+        self.timeout = 10
+
+        # Use a session for persistent connections
+        self.session = requests.Session()
+        # Add 2 auto retries for these status codes but not on POST/PUT
+        retry_strategy = Retry(
+            total=2,
+            status_forcelist=[429, 500, 502, 503, 504],
+            method_whitelist=["HEAD", "GET", "OPTIONS"]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
 
     def __repr__(self) -> str:
         """Defines the string representation of our TD Ameritrade Class instance.
@@ -288,10 +303,11 @@ class TradeStationClient():
         }
 
         # Post the data to the token endpoint and store the response.
-        token_response = requests.post(
+        token_response = self.session.post(
             url=self.config['auth_endpoint'],
             data=data,
-            verify=True
+            verify=True,
+            timeout=self.timeout
         )
 
         # Call the `_token_save` method to save the access token.
@@ -345,10 +361,11 @@ class TradeStationClient():
         }
 
         # Make a post request to the token endpoint.
-        response = requests.post(
+        response = self.session.post(
             url=self.config['auth_endpoint'],
             data=data,
-            verify=True
+            verify=True,
+            timeout=self.timeout
         )
 
         # Save the token if the response was okay.
@@ -514,12 +531,12 @@ class TradeStationClient():
 
             # handles the non-streaming GET requests.
             if stream == False:
-                response = requests.get(
-                    url=url, headers=headers, params=args, verify=True)
+                response = self.session.get(
+                    url=url, headers=headers, params=args, verify=True, timeout=self.timeout)
 
             # handles the Streaming request.
             else:
-                response = requests.get(
+                response = self.session.get(
                     url=url, headers=headers, params=args, verify=True, stream=True)
                 for line in response.iter_lines(chunk_size=300):
 
@@ -532,25 +549,25 @@ class TradeStationClient():
         elif method == 'post':
 
             if payload is None:
-                response = requests.post(
-                    url=url, headers=headers, params=args, verify=True)
+                response = self.session.post(
+                    url=url, headers=headers, params=args, verify=True, timeout=self.timeout)
             else:
-                response = requests.post(
-                    url=url, headers=headers, params=args, verify=True, json=payload)
+                response = self.session.post(
+                    url=url, headers=headers, params=args, verify=True, json=payload, timeout=self.timeout)
 
         elif method == 'put':
 
             if payload is None:
-                response = requests.put(
-                    url=url, headers=headers, params=args, verify=True)
+                response = self.session.put(
+                    url=url, headers=headers, params=args, verify=True, timeout=self.timeout)
             else:
-                response = requests.put(
-                    url=url, headers=headers, params=args, verify=True, json=payload)
+                response = self.session.put(
+                    url=url, headers=headers, params=args, verify=True, json=payload, timeout=self.timeout)
 
         elif method == 'delete':
 
-            response = requests.delete(
-                url=url, headers=headers, params=args, verify=True)
+            response = self.session.delete(
+                url=url, headers=headers, params=args, verify=True, timeout=self.timeout)
 
         else:
             raise ValueError(
