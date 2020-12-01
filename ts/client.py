@@ -7,6 +7,8 @@ import urllib.parse
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
+import webbrowser
+
 from typing import List
 from typing import Dict
 from typing import Union
@@ -490,9 +492,10 @@ class TradeStationClient():
         print('')
         print('='*80)
         print('')
-        print('Please go to URL provided authorize your account: {}'.format(url))
+        print('Authenticating on url: {}'.format(url))
         print('')
         print('-'*80)
+        webbrowser.open(url)
 
         # ask the user to take the final URL after authentication and paste here so we can parse.
         my_response = input('Paste the full URL redirect here: ')
