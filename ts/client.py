@@ -19,6 +19,11 @@ from datetime import datetime
 
 from dateutil.parser import parse
 
+import logging
+
+# switch to level=logging.DEBUG if needed
+logging.basicConfig(level=logging.INFO)
+
 class TradeStationClient():
 
     """
@@ -436,14 +441,14 @@ class TradeStationClient():
         (int): The number of seconds till expiration
         """
 
-        # Calculate the token expire time.
-        token_exp = time.time() >= self.state['access_token_expires_at']
+        # Calculate the token expiration time.
+        token_expired = (time.time() >= self.state['access_token_expires_at'])
 
         # if the time to expiration is less than or equal to 0, return 0.
-        if not self.state['refresh_token'] or token_exp:
+        if not self.state['refresh_token'] or token_expired:
             token_exp = 0
         else:
-            token_exp = int(token_exp)
+            token_exp = int(self.state['access_token_expires_at'] - time.time())
 
         return token_exp
 
@@ -461,7 +466,6 @@ class TradeStationClient():
         nseconds (int): The minimum number of seconds the token has to be valid for before
             attempting to get a refresh token.
         """
-
         if self._token_seconds() < nseconds and self.config['refresh_enabled']:
             self._grab_refresh_token()
 
