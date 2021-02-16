@@ -93,13 +93,13 @@ class TradeStationClient():
         # define a new attribute called 'authstate' and initalize it to '' (Blank). This will be used by our login function.
         self.authstate = False
 
-        self.timeout = 10
+        self.timeout = 8
 
         # Use a session for persistent connections
         self.session = requests.Session()
         # Add 2 auto retries for these status codes but not on POST/PUT
         retry_strategy = Retry(
-            total=2,
+            total=1,
             status_forcelist=[429, 500, 502, 503, 504],
             method_whitelist=["HEAD", "GET", "OPTIONS"]
         )
