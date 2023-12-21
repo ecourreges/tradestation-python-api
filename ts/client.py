@@ -1675,7 +1675,7 @@ class TradeStationClient():
             payload=order
         )
 
-        return response['Orders']
+        return response
 
     def cancel_order(self, order_id: str) -> dict:
         """Cancel an order.
