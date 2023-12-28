@@ -16,6 +16,7 @@ from typing import Optional
 
 from datetime import date
 from datetime import datetime
+from datetime import timedelta
 
 from dateutil.parser import parse
 
@@ -747,6 +748,83 @@ class TradeStationClient():
                 url='brokerage/accounts/{account_numbers}/positions'.format(
                     account_numbers=account_keys
                 )
+            )
+
+            # grab the response.
+            response = self._handle_requests(
+                url=url_endpoint,
+                method='get',
+                args=params
+            )
+
+            return response
+
+        else:
+            raise ValueError("Account Keys, must be a list object")
+
+    def historical_orders(self, account_keys: List[str], since: int, page_size: int, page_number: int = 0) -> dict:
+        """Grab all the account orders for a list of accounts.
+
+        Overview:
+        ----
+        This endpoint is used to grab all the order from a list of accounts provided. Additionally,
+        each account will only go back 90 days when searching for orders.
+
+        Arguments:
+        ----
+        account_keys (List[str]): A list of account numbers.
+
+        since (int): Number of days to look back, max is 90 days.
+
+        page_size (int): The page size.
+
+        page_number (int, optional): The page number to return if more than one. Defaults to 0. IGNORED for now
+
+        Raises:
+        ----
+        ValueError: If the list is more than 25 account numbers will raise an error.
+
+        Returns:
+        ----
+        dict: A list of account balances for each of the accounts.
+        """
+
+        if isinstance(account_keys, list):
+
+            # validate the token.
+            self._token_validation()
+
+            # argument validation, account keys.
+            if len(account_keys) == 0:
+                raise ValueError(
+                    "You cannot pass through an empty list for account keys.")
+            elif len(account_keys) > 0 and len(account_keys) <= 25:
+                account_keys = ','.join(account_keys)
+            elif len(account_keys) > 25:
+                raise ValueError(
+                    "You cannot pass through more than 25 account keys.")
+
+            # argument validation, SINCE
+            if since > 90:
+                raise ValueError(
+                    "You can't get orders older than 90 days old.")
+            elif since <= 0:
+                raise ValueError(
+                    "You can't specify since as a 0 or a negative number.")
+
+            since_day = date.today() - timedelta(days=since) 
+
+
+            params = {
+                'access_token': self.state['access_token'],
+                'since': since_day,
+                'pageSize': page_size
+            }
+
+            # define the endpoint.
+            url_endpoint = self._api_endpoint(
+                url='brokerage/accounts/{account_numbers}/historicalorders'.format(
+                    account_numbers=account_keys)
             )
 
             # grab the response.
