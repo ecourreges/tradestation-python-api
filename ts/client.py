@@ -17,6 +17,7 @@ from typing import Optional
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
+from pytz import utc
 
 from dateutil.parser import parse
 
@@ -1209,7 +1210,7 @@ class TradeStationClient():
 
         return response
 
-    def get_bars_date_range(self, symbol: str, interval: int, unit: str, start_date: str, end_date: str, session: str) -> dict:
+    def get_bars_date_range(self, symbol: str, interval: int, unit: str, start_date: str, end_date: str | None, session: str) -> dict:
         """Stream bars for a certain data range.
 
         Arguments:
@@ -1255,14 +1256,16 @@ class TradeStationClient():
         url_endpoint = self._api_endpoint(url = f"marketdata/barcharts/{symbol}")
 
         # define the arguments.
+        #print(start_date.astimezone(utc).replace(tzinfo=None).isoformat(timespec='seconds'))
         params = {
             'access_token': self.state['access_token'],
             'sessionTemplate': session,
-            'firstdate': start_date,
-            'lastdate': end_date,
+            'firstdate': start_date.astimezone(utc).replace(tzinfo=None).isoformat(timespec='seconds') + 'Z',
             'interval': interval,
             'unit': unit
         }
+        if end_date is not None:
+            params['lastdate'] = end_date
 
         # grab the response.
         response = self._handle_requests(
