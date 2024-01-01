@@ -5,7 +5,7 @@ import json
 import requests
 import urllib.parse
 from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
+from urllib3.util.retry import Retry
 
 import webbrowser
 
@@ -539,9 +539,12 @@ class TradeStationClient():
 
             # handles the non-streaming GET requests.
             if stream == False:
-                response = self.session.get(
-                    url=url, headers=headers, params=args, verify=True, timeout=self.timeout)
-
+                try:
+                    response = self.session.get(
+                        url=url, headers=headers, params=args, verify=True, timeout=self.timeout)
+                except requests.exceptions.RetryError as e:
+                    print(requests.get(url=url, headers=headers, params=args, verify=True, timeout=self.timeout).text)
+                    raise e
             # handles the Streaming request.
             else:
                 response = self.session.get(
