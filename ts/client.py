@@ -624,9 +624,7 @@ class TradeStationClient():
         self._token_validation()
 
         # define the endpoint.
-        url_endpoint = self._api_endpoint(
-            url='brokerage/accounts'
-        )
+        url_endpoint = self._api_endpoint(url='brokerage/accounts')
 
         # define the arguments
         params = {
@@ -675,10 +673,7 @@ class TradeStationClient():
                     "You cannot pass through more than 25 account keys.")
 
             # define the endpoint.
-            url_endpoint = self._api_endpoint(
-                url='brokerage/accounts/{account_numbers}/balances'.format(
-                    account_numbers=account_keys)
-            )
+            url_endpoint = self._api_endpoint(url=f'brokerage/accounts/{account_keys}/balances')
 
             # define the arguments
             params = {
@@ -748,11 +743,7 @@ class TradeStationClient():
                 }
 
             # define the endpoint.
-            url_endpoint = self._api_endpoint(
-                url='brokerage/accounts/{account_numbers}/positions'.format(
-                    account_numbers=account_keys
-                )
-            )
+            url_endpoint = self._api_endpoint(url=f'brokerage/accounts/{account_keys}/positions')
 
             # grab the response.
             response = self._handle_requests(
@@ -826,10 +817,7 @@ class TradeStationClient():
             }
 
             # define the endpoint.
-            url_endpoint = self._api_endpoint(
-                url='brokerage/accounts/{account_numbers}/historicalorders'.format(
-                    account_numbers=account_keys)
-            )
+            url_endpoint = self._api_endpoint(url=f'brokerage/accounts/{account_keys}/historicalorders')
 
             # grab the response.
             response = self._handle_requests(
@@ -886,33 +874,24 @@ class TradeStationClient():
                     "You cannot pass through more than 25 account keys.")
 
             # argument validation, SINCE
-            if since:
-                if since > 14:
-                    raise ValueError(
-                        "You can't get orders older than 14 days old.")
-                elif since <= 0:
-                    raise ValueError(
-                        "You can't specify since as a 0 or a negative number.")
+            if since > 14:
+                raise ValueError(
+                    "You can't get orders older than 14 days old.")
+            elif since <= 0:
+                raise ValueError(
+                    "You can't specify since as a 0 or a negative number.")
 
-                today = date.today()
-                today = date(year=today.year, month=today.month, day=since)
-                date_format = today.strftime("%m/%d/%Y")
-
-            else:
-                date_format = None
+            since_day = date.today() - timedelta(days=since) 
 
             params = {
                 'access_token': self.state['access_token'],
-                'since': date_format,
+                'since': since_day,
                 'pageSize': page_size,
                 'pageNum': page_number
             }
 
             # define the endpoint.
-            url_endpoint = self._api_endpoint(
-                url='brokerage/accounts/{account_numbers}/orders'.format(
-                    account_numbers=account_keys)
-            )
+            url_endpoint = self._api_endpoint(url=f'brokerage/accounts/{account_keys}/orders')
 
             # grab the response.
             response = self._handle_requests(
@@ -949,9 +928,7 @@ class TradeStationClient():
             raise ValueError("You must pass through a symbol.")
 
         # define the endpoint.
-        url_endpoint = self._api_endpoint(
-            url='data/symbol/{ticker_symbol}'.format(ticker_symbol=symbol)
-        )
+        url_endpoint = self._api_endpoint(url=f'marketdata/symbols/{symbol}')
 
         # define the arguments.
         params = {
@@ -992,8 +969,7 @@ class TradeStationClient():
         symbols = ','.join(symbols)
 
         # define the endpoint.
-        url_endpoint = self._api_endpoint(
-            url='data/quote/{symbols}'.format(symbols=symbols))
+        url_endpoint = self._api_endpoint(url=f'marketdata/quotes/{symbols}')
 
         # define the arguments.
         params = {
@@ -1034,8 +1010,7 @@ class TradeStationClient():
         symbols = ','.join(symbols)
 
         # define the endpoint.
-        url_endpoint = self._api_endpoint(
-            url='stream/quote/changes/{symbols}'.format(symbols=symbols))
+        url_endpoint = self._api_endpoint(url=f'marketdata/stream/quotes/{symbols}')
 
         # define the headers
         headers = {
@@ -1052,97 +1027,6 @@ class TradeStationClient():
             url=url_endpoint,
             method='get',
             headers=headers,
-            args=params,
-            stream=True
-        )
-
-        return response
-    
-    def get_bars(self, symbol: str, interval: int, unit: str, session: str) -> dict:
-        """Stream bars for a certain data range.
-
-        Arguments:
-        ----
-        symbol (str): A ticker symbol to stream bars.
-
-        interval (int): The size of the bar.
-
-        unit (str): The frequency of the bar.
-
-        start_date (str): The start point of the streaming.
-
-        end_date (str): The end point of the streaming.
-
-        session (str): Defines whether you want bars from post, pre, or current market.
-
-        Raises:
-        ----
-        ValueError:
-
-        Returns:
-        ----
-        (dict): A dictionary of quotes.
-        """
-
-        # validate the token.
-        self._token_validation()
-
-        # validate the symbol
-        if symbol is None:
-            raise ValueError("You must pass through one symbol.")
-
-        # validate the unit
-        if unit not in ["Minute", "Daily", "Weekly", "Monthly"]:
-            raise ValueError(
-                'The value you passed through for `unit` is incorrect, it must be one of the following: ["Minute", "Daily", "Weekly", "Monthly"]')
-
-        # validate the interval.
-        if interval != 1 and unit in ["Daily", "Weekly", "Monthly"]:
-            raise ValueError(
-                "The interval must be one for daily, weekly or monthly.")
-        elif interval > 1440:
-            raise ValueError("Interval must be less than or equal to 1440")
-
-        # validate the session.
-        if session is not None and session not in ['USEQPre', 'USEQPost', 'USEQPreAndPost', 'Default']:
-            raise ValueError(
-                'The value you passed through for `session` is incorrect, it must be one of the following: ["USEQPre","USEQPost","USEQPreAndPost","Default"]')
-
-        # validate the START DATE.
-        if isinstance(start_date, datetime.datetime) or isinstance(start_date, datetime.date):
-            start_date_iso = start_date.isoformat()
-        elif isinstance(start_date, str):
-            datetime_parsed = parse(start_date)
-            start_date_iso = datetime_parsed.isoformat()
-
-        # validate the END DATE.
-        if isinstance(end_date, datetime.datetime) or isinstance(start_date, datetime.date):
-            end_date_iso = end_date.isoformat()
-
-        elif isinstance(end_date, str):
-            datetime_parsed = parse(end_date)
-            end_date_iso = datetime_parsed.isoformat()
-
-        # define the endpoint.
-        url_endpoint = self._api_endpoint(url='stream/barchart/{symbol}/{interval}/{unit}/{start}/{end}'.format(
-            symbol=symbol,
-            interval=interval,
-            unit=unit,
-            start=start_date_iso,
-            end=end_date_iso
-        )
-        )
-
-        # define the arguments.
-        params = {
-            'access_token': self.state['access_token'],
-            'sessionTemplate': session
-        }
-
-        # grab the response.
-        response = self._handle_requests(
-            url=url_endpoint,
-            method='get',
             args=params,
             stream=True
         )
@@ -1280,98 +1164,7 @@ class TradeStationClient():
 
         return response
 
-    def stream_bars_date_range(self, symbol: str, interval: int, unit: str, start_date: str, end_date: str, session: str) -> dict:
-        """Stream bars for a certain data range.
-
-        Arguments:
-        ----
-        symbol (str): A ticker symbol to stream bars.
-
-        interval (int): The size of the bar.
-
-        unit (str): The frequency of the bar.
-
-        start_date (str): The start point of the streaming.
-
-        end_date (str): The end point of the streaming.
-
-        session (str): Defines whether you want bars from post, pre, or current market.
-
-        Raises:
-        ----
-        ValueError:
-
-        Returns:
-        ----
-        (dict): A dictionary of quotes.
-        """
-
-        # validate the token.
-        self._token_validation()
-
-        # validate the symbol
-        if symbol is None:
-            raise ValueError("You must pass through one symbol.")
-
-        # validate the unit
-        if unit not in ["Minute", "Daily", "Weekly", "Monthly"]:
-            raise ValueError(
-                'The value you passed through for `unit` is incorrect, it must be one of the following: ["Minute", "Daily", "Weekly", "Monthly"]')
-
-        # validate the interval.
-        if interval != 1 and unit in ["Daily", "Weekly", "Monthly"]:
-            raise ValueError(
-                "The interval must be one for daily, weekly or monthly.")
-        elif interval > 1440:
-            raise ValueError("Interval must be less than or equal to 1440")
-
-        # validate the session.
-        if session is not None and session not in ['USEQPre', 'USEQPost', 'USEQPreAndPost', 'Default']:
-            raise ValueError(
-                'The value you passed through for `session` is incorrect, it must be one of the following: ["USEQPre","USEQPost","USEQPreAndPost","Default"]')
-
-        # validate the START DATE.
-        if isinstance(start_date, datetime.datetime) or isinstance(start_date, datetime.date):
-            start_date_iso = start_date.isoformat()
-        elif isinstance(start_date, str):
-            datetime_parsed = parse(start_date)
-            start_date_iso = datetime_parsed.isoformat()
-
-        # validate the END DATE.
-        if isinstance(end_date, datetime.datetime) or isinstance(start_date, datetime.date):
-            end_date_iso = end_date.isoformat()
-
-        elif isinstance(end_date, str):
-            datetime_parsed = parse(end_date)
-            end_date_iso = datetime_parsed.isoformat()
-
-        # define the endpoint.
-        url_endpoint = self._api_endpoint(url='stream/barchart/{symbol}/{interval}/{unit}/{start}/{end}'.format(
-            symbol=symbol,
-            interval=interval,
-            unit=unit,
-            start=start_date_iso,
-            end=end_date_iso
-        )
-        )
-
-        # define the arguments.
-        params = {
-            'access_token': self.state['access_token'],
-            'sessionTemplate': session
-        }
-
-        # grab the response.
-        response = self._handle_requests(
-            url=url_endpoint,
-            method='get',
-            args=params,
-            stream=True
-        )
-
-        return response
-
-    def stream_bars_back(self, symbol: str, interval: int, unit: str, bar_back: int, last_date: str, session: str):
+    def stream_bars_back(self, symbol: str, interval: int, unit: str, bar_back: int, session: str):
         """Stream bars for a certain number of bars back.
 
         Arguments:
@@ -1421,31 +1214,19 @@ class TradeStationClient():
             raise ValueError(
                 'The value you passed through for `session` is incorrect, it must be one of the following: ["USEQPre","USEQPost","USEQPreAndPost","Default"]')
 
-        if bar_back > 157600:
-            raise ValueError("`bar_back` must be less than or equal to 157600")
-
-        if isinstance(last_date, datetime.datetime):
-            last_date_iso = last_date.isoformat()
-
-        elif isinstance(last_date, str):
-            datetime_parsed = parse(last_date)
-            last_date_iso = datetime_parsed.isoformat()
+        if bar_back > 57600:
+            raise ValueError("`bar_back` must be less than or equal to 57600")
 
         # Define the endpoint.
-        url_endpoint = self._api_endpoint(
-            url='stream/barchart/{symbol}/{interval}/{unit}/{bar_back}/{last_date}'.format(
-                symbol=symbol,
-                interval=interval,
-                unit=unit,
-                bar_back=bar_back,
-                last_date_iso=last_date_iso
-            )
-        )
+        url_endpoint = self._api_endpoint(f'marketdata/stream/barchart/{symbol}')
 
         # define the arguments.
         params = {
             'access_token': self.state['access_token'],
-            'sessionTemplate': session
+            'sessiontemplate': session,
+            'barsback': bar_back,
+            'interval': interval,
+            'unit': unit
         }
 
         # grab the response.
@@ -1454,248 +1235,6 @@ class TradeStationClient():
             method='get',
             args=params,
             stream=True
-        )
-
-        return response
-
-    def stream_bars_days_back(self, symbol: str, interval: int, unit: str, bar_back: int, last_date: str, session: str):
-        """Stream bars for a certain number of days back.
-
-        Arguments:
-        ----
-        symbol (str): A ticker symbol to stream bars.
-
-        interval (int): The size of the bar.
-
-        unit (str): The frequency of the bar.
-
-        bar_back (str): The number of bars back.
-
-        last_date (str): The date from which to start going back.
-
-        session (str): Defines whether you want bars from post, pre, or current market.
-
-        Raises:
-        ----
-        ValueError:
-
-        Returns:
-        ----
-        (dict): A dictionary of quotes.
-        """
-
-        # validate the token.
-        self._token_validation()
-
-        # validate the symbol
-        if symbol is None:
-            raise ValueError("You must pass through one symbol.")
-
-        # validate the unit
-        if unit not in ["Minute", "Daily", "Weekly", "Monthly"]:
-            raise ValueError(
-                'The value you passed through for `unit` is incorrect, it must be one of the following: ["Minute", "Daily", "Weekly", "Monthly"]')
-
-        # validate the interval.
-        if interval != 1 and unit in ["Daily", "Weekly", "Monthly"]:
-            raise ValueError(
-                "The interval must be one for daily, weekly or monthly.")
-        elif interval > 1440:
-            raise ValueError("Interval must be less than or equal to 1440")
-
-        # validate the session.
-        if session is not None and session not in ['USEQPre', 'USEQPost', 'USEQPreAndPost', 'Default']:
-            raise ValueError(
-                'The value you passed through for `session` is incorrect, it must be one of the following: ["USEQPre","USEQPost","USEQPreAndPost","Default"]')
-
-        if bar_back > 157600:
-            raise ValueError("`bar_back` must be less than or equal to 157600")
-
-        if isinstance(last_date, datetime.datetime):
-            last_date_iso = last_date.isoformat()
-
-        elif isinstance(last_date, str):
-            datetime_parsed = parse(last_date)
-            last_date_iso = datetime_parsed.isoformat()
-
-        # define the endpoint.
-        url_endpoint = self._api_endpoint(
-            url='stream/barchart/{symbol}/{interval}/{unit}/{bar_back}/{last_date}'.format(
-                symbol=symbol,
-                interval=interval,
-                unit=unit,
-                bar_back=bar_back,
-                last_date=last_date_iso
-            )
-        )
-
-        # Define the arguments.
-        params = {
-            'access_token': self.state['access_token'],
-            'sessionTemplate': session
-        }
-
-        # grab the response..
-        response = self._handle_requests(
-            url=url_endpoint,
-            method='get',
-            args=params,
-            stream=True
-        )
-
-        return response
-
-    def stream_bars(self, symbol: str, interval: int, bar_back: int):
-        """Stream bars for a certain symbol.
-
-        Arguments:
-        ----
-        symbol (str): A ticker symbol to stream bars.
-
-        interval (int): The size of the bar.
-
-        unit (str): The frequency of the bar.
-
-        Raises:
-        ----
-        ValueError:
-
-        Returns:
-        ----
-        (dict): A dictionary of quotes.
-        """
-
-        # validate the token.
-        self._token_validation()
-
-        # validate the symbol
-        if symbol is None:
-            raise ValueError("You must pass through one symbol.")
-
-        if interval > 64999:
-            raise ValueError("Interval must be less than or equal to 64999")
-
-        if bar_back > 10:
-            raise ValueError("`bar_back` must be less than or equal to 10")
-
-        # define the endpoint.
-        url_endpoint = self._api_endpoint(
-            url='stream/tickbars/{symbol}/{interval}/{bar_back}'.format(
-                symbol=symbol,
-                interval=interval,
-                bar_back=bar_back
-            )
-        )
-
-        # define the arguments.
-        params = {
-            'access_token': self.state['access_token']
-        }
-
-        # grab the response.
-        response = self._handle_requests(
-            url=url_endpoint,
-            method='get',
-            args=params,
-            stream=True
-        )
-
-        return response
-
-    def symbol_lists(self) -> dict:
-        """Returns a list of ticker symbols
-
-        Returns:
-        ----
-        (dict): A list of symbols.
-        """
-
-        # validate the token.
-        self._token_validation()
-
-        # define the endpoint.
-        url_endpoint = self._api_endpoint(url='data/symbollists')
-
-        # define the arguments.
-        params = {
-            'access_token': self.state['access_token']
-        }
-
-        # grab the response.
-        response = self._handle_requests(
-            url=url_endpoint,
-            method='get',
-            args=params
-        )
-
-        return response
-
-    def symbol_list(self, symbol_list_id: List[str]) -> dict:
-        """Grab a list of symbols.
-
-        Arguments:
-        ----
-        symbol_list_id (List[str]): A list of symbol.
-
-        Returns:
-        ----
-        dict: Return a list of symbols.
-        """
-
-        # validate the token.
-        self._token_validation()
-
-        # define the endpoint.
-        url_endpoint = self._api_endpoint(
-            url='data/symbollists/{list_symbol}'.format(
-                list_symbol=symbol_list_id)
-        )
-
-        # define the arguments.
-        params = {
-            'access_token': self.state['access_token']
-        }
-
-        # grab the response.
-        response = self._handle_requests(
-            url=url_endpoint,
-            method='get',
-            args=params
-        )
-
-        return response
-
-    def symbols_from_symbol_list(self, symbol_list_id: List[str]) -> dict:
-        """Grab a list of symbols.
-
-        Arguments:
-        ----
-        symbol_list_id (List[str]): A list of symbol.
-
-        Returns:
-        ----
-        dict: Return a list of symbols.
-        """
-
-        # validate the token.
-        self._token_validation()
-
-        # define the endpoint.
-        url_endpoint = self._api_endpoint(
-            url='data/symbollists/{list_id}/symbols'.format(
-                list_id=symbol_list_id)
-        )
-
-        # define the arguments.
-        params = {
-            'access_token': self.state['access_token']
-        }
-
-        # grab the response.
-        response = self._handle_requests(
-            url=url_endpoint,
-            method='get',
-            args=params
         )
 
         return response
@@ -1744,7 +1283,7 @@ class TradeStationClient():
         self._token_validation()
 
         # define the endpoint.
-        url_endpoint = self._api_endpoint(url='orderexecution/orders')
+        url_endpoint = self._api_endpoint('orderexecution/orders')
 
         # define the arguments.
         params = {
@@ -1777,8 +1316,7 @@ class TradeStationClient():
         self._token_validation()
 
         # define the endpoint.
-        url_endpoint = self._api_endpoint(
-            url='orderexecution/orders/{order_id}'.format(order_id=order_id))
+        url_endpoint = self._api_endpoint(f'orderexecution/orders/{order_id}')
 
         # define the arguments.
         params = {
@@ -1812,9 +1350,7 @@ class TradeStationClient():
         self._token_validation()
 
         # define the endpoint.
-        url_endpoint = self._api_endpoint(
-            url='orderexecution/orders/{order_id}'.format(order_id=order_id)
-        )
+        url_endpoint = self._api_endpoint(f'orderexecution/orders/{order_id}')
 
         # define the arguments.
         params = {
@@ -1847,7 +1383,7 @@ class TradeStationClient():
         self._token_validation()
 
         # define the endpoint.
-        url_endpoint = self._api_endpoint(url='orders/groups/confirm')
+        url_endpoint = self._api_endpoint('orderexecution/ordergroupconfirm')
 
         # define the arguments.
         params = {
@@ -1880,7 +1416,7 @@ class TradeStationClient():
         self._token_validation()
 
         # define the endpoint.
-        url_endpoint = self._api_endpoint(url='orders/groups')
+        url_endpoint = self._api_endpoint(url='orderexecution/ordergroups')
 
         # define the arguments.
         params = {
