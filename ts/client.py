@@ -341,10 +341,11 @@ class TradeStationClient():
 
         # if it's not expired we don't care.
         if self._token_validation():
+            print(f"Token still valid {self._token_seconds()} seconds, no need to login")
             return True
 
         # if the current access token is expired then try and refresh access token.
-        elif self.state['refresh_token'] and self._grab_refresh_token():
+        if self.state['refresh_token'] and self._grab_refresh_token():
             return True
 
         # More than likely a first time login, so can't do silent authenticaiton.
@@ -378,9 +379,11 @@ class TradeStationClient():
 
         # Save the token if the response was okay.
         if response.ok:
+            print('Successfully Refreshed Token')
             self._token_save(response=response)
             return True
         else:
+            print('Failed to refresh Token')
             return False
 
     def _token_save(self, response: requests.Response):
@@ -467,8 +470,15 @@ class TradeStationClient():
         nseconds (int): The minimum number of seconds the token has to be valid for before
             attempting to get a refresh token.
         """
-        if self._token_seconds() < nseconds and self.config['refresh_enabled']:
-            self._grab_refresh_token()
+        if self._token_seconds() < nseconds:
+            if self.config['refresh_enabled']:
+                return self._grab_refresh_token()
+            else:
+                print("Token is expired, and refresh is disabled")
+                return False
+        else:
+            #print("Token is valid for {} more seconds".format(self._token_seconds()))
+            return True
 
     def _authorize(self) -> None:
         """Authorizes the session.
