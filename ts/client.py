@@ -36,7 +36,7 @@ class TradeStationClient():
         to the TD Ameritrade API.
     """
 
-    def __init__(self, username: str, client_id: str, client_secret: str, redirect_uri: str, paper_trading: bool = True) -> None:
+    def __init__(self, username: str, client_id: str, client_secret: str, redirect_uri: str, paper_trading: bool = True, v3auth: bool = False) -> None:
         """Initalizes the Tradestation Client object.
 
         Arguments:
@@ -66,9 +66,14 @@ class TradeStationClient():
                 )
             >>> tradestation_client
         """
+        if v3auth:
+            auth_endpoint = 'https://signin.tradestation.com/oauth/token'
+        else:
+            auth_endpoint = 'https://api.tradestation.com/v2/Security/Authorize'
 
         # define the configuration settings.
         self.config = {
+            'v3auth' : v3auth,
             'client_id': client_id,
             'client_secret': client_secret,
             'username': username,
@@ -77,7 +82,7 @@ class TradeStationClient():
             'paper_resource': 'https://sim-api.tradestation.com',
             'api_version': 'v3',
             'paper_api_version': 'v3',
-            'auth_endpoint': 'https://api.tradestation.com/v2/Security/Authorize',
+            'auth_endpoint': auth_endpoint,
             'cache_state': True,
             'refresh_enabled': True,
             'paper_trading': paper_trading
@@ -210,7 +215,7 @@ class TradeStationClient():
 
         # Grab the current directory of the client file, that way we can store the JSON file in the same folder.
         dir_path = os.path.dirname(os.path.realpath(__file__))
-        filename = 'ts_state.json'
+        filename = str(self.config['client_id']) + '_state.json'
         file_path = os.path.join(dir_path, filename)
 
         # If the state is initalized.
@@ -496,12 +501,20 @@ class TradeStationClient():
             'redirect_uri': self.config['redirect_uri'],
             'client_id': self.config['client_id']
         }
+        if self.config['v3auth']:
+            data['audience'] = 'https://api.tradestation.com'
+            data['state'] = '123456789'
+            # https://api.tradestation.com/docs/fundamentals/authentication/scopes
+            data['scope'] = 'openid offline_access MarketData ReadAccount Trade'
 
         # url encode the data.
         params = urllib.parse.urlencode(data)
 
         # build the full URL for the authentication endpoint.
-        url = 'https://api.tradestation.com/v2/authorize?' + params
+        if self.config['v3auth']:
+            url = 'https://signin.tradestation.com/authorize?' + params
+        else:
+            url = 'https://api.tradestation.com/v2/authorize?' + params
 
         # aks the user to go to the URL provided, they will be prompted to authenticate themsevles.
         print('')
