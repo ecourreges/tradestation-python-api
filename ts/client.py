@@ -330,7 +330,7 @@ class TradeStationClient():
         else:
             return False
 
-    def _silent_sso(self) -> bool:
+    def _silent_sso(self, force_refresh=False) -> bool:
         """Handles the silent authentication workflow.
 
         Overview:
@@ -345,7 +345,7 @@ class TradeStationClient():
         """
 
         # if it's not expired we don't care.
-        if self._token_validation():
+        if self._token_validation() and not force_refresh:
             print(f"Token still valid {self._token_seconds()} seconds, no need to login")
             return True
 
@@ -531,7 +531,7 @@ class TradeStationClient():
         # store the redirect URL
         self.state['redirect_code'] = my_response
 
-    def _handle_requests(self, url: str, method: str, headers: dict = {}, args: dict = None, stream: bool = False, payload: dict = None) -> dict:
+    def _handle_requests(self, url: str, method: str, headers: dict = {}, args: dict = None, stream: bool = False, payload: dict = None, retry_ok = True) -> dict:
         """[summary]
 
         Arguments:
@@ -633,6 +633,12 @@ class TradeStationClient():
             print("RESPONSE TEXT: {}".format(response.text))
             print('-'*80)
             print('')
+
+            if status_code == 401 and retry_ok:
+                print("Unauthorized, performing silent login and auto retry of request")
+                self._silent_sso(force_refresh=True)
+                return self._handle_requests(url=url, method=method, headers=headers, args=args, stream=stream, payload=payload, retry_ok=False)
+
 
 
     def user_accounts(self) -> dict:
