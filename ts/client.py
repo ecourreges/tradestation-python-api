@@ -411,7 +411,12 @@ class TradeStationClient():
         """
 
         # Parse the data.
-        json_data = response.json()
+        try:
+            json_data = response.json()
+        except requests.RequestException:
+            print("Failed to decode JSON response, check Tradestation Website for issues:")
+            print(response.text[:1000])
+            return False
 
         # Save the access token.
         if 'access_token' in json_data:
